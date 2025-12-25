@@ -1,0 +1,160 @@
+
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #000;
+  color: #fceea7;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+#loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  transition: opacity 0.8s ease-out;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(212, 175, 55, 0.1);
+  border-top: 1px solid #d4af37;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loader-text {
+  font-family: 'Cinzel', serif;
+  letter-spacing: 4px;
+  font-size: 14px;
+  color: #d4af37;
+}
+
+/* Control Panel Styles */
+.controls-top-right {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  display: flex;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.holiday-select, .holiday-button {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid #d4af37;
+  color: #fceea7;
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  outline: none;
+  border-radius: 2px;
+}
+
+.holiday-select:hover, .holiday-button:hover {
+  background: rgba(212, 175, 55, 0.2);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+.holiday-select option {
+  background: #111;
+  color: #fceea7;
+}
+
+#ui-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start; /* Changed from center to push title up */
+  padding: 80px 60px; /* Added more top padding */
+  transition: opacity 0.5s ease;
+}
+
+#ui-container.ui-hidden {
+  opacity: 0;
+}
+
+.main-title {
+  font-family: 'Cinzel', serif;
+  font-size: 64px;
+  margin: 0;
+  background: linear-gradient(to bottom, #ffffff, #d4af37);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.5));
+  pointer-events: auto;
+  text-align: left;
+  line-height: 1.1;
+  max-width: 400px;
+}
+
+.personalized-message {
+  position: fixed;
+  bottom: 40px;
+  right: 40px;
+  text-align: right;
+  z-index: 20;
+  pointer-events: none;
+  font-family: 'Cinzel', serif;
+  transition: opacity 0.5s ease;
+}
+
+.ui-hidden + .personalized-message {
+  opacity: 0;
+}
+
+.msg-main {
+  font-size: 14px; /* Reduced from 18px */
+  margin: 0;
+  letter-spacing: 2px;
+  color: #fceea7;
+  text-shadow: 0 0 8px rgba(212, 175, 55, 0.6);
+  opacity: 0.85;
+}
+
+.msg-sub {
+  font-size: 11px; /* Reduced from 14px */
+  margin: 5px 0 0 0;
+  letter-spacing: 3px;
+  color: #d4af37;
+  opacity: 0.7;
+}
+
+#webcam-container {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#cv-canvas {
+  background: #222;
+}

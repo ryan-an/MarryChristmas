@@ -1,0 +1,58 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Merry Christmas - Grand Holiday Magic</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css">
+  <script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+    "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/+esm",
+    "three/": "https://esm.sh/three@^0.182.0/"
+  }
+}
+</script>
+</head>
+<body>
+  <div id="loader">
+    <div class="spinner"></div>
+    <div class="loader-text">PREPARING GRAND HOLIDAY MAGIC</div>
+  </div>
+
+  <!-- Top-Right Control Panel -->
+  <div id="top-controls" class="controls-top-right">
+    <select id="theme-selector" class="holiday-select">
+      <option value="classic">Classic Green</option>
+      <option value="gold">Golden Frost</option>
+      <option value="crimson">Crimson Night</option>
+      <option value="midnight">Midnight Blue</option>
+      <option value="snow">Silver Snow</option>
+    </select>
+    <button id="fullscreen-btn" class="holiday-button">Full Screen</button>
+  </div>
+
+  <div id="ui-container">
+    <h1 class="main-title">Merry Christmas</h1>
+  </div>
+
+  <!-- Bottom-Right Personalized Message -->
+  <div class="personalized-message">
+    <p class="msg-main">Ms. Tan, IT IS BEAUTIFUL TO HAVE YOU.</p>
+    <p class="msg-sub">YOUR Mr. Liu</p>
+  </div>
+
+  <div id="webcam-container">
+    <video id="webcam" autoplay playsinline></video>
+    <canvas id="cv-canvas" width="160" height="120"></canvas>
+  </div>
+
+  <script type="module" src="index.tsx"></script>
+</body>
+</html>

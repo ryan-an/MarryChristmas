@@ -1,0 +1,7 @@
+{
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "name": "MarryChristmas",
+  "description": "圣诞树"
+}
