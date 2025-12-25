@@ -419,14 +419,39 @@ class HolidayApp {
     if (loader) { loader.classList.add('ui-hidden'); setTimeout(() => loader.remove(), 800); }
   }
 
+  private toggleTextUI() {
+    const uiContainer = document.getElementById('ui-container');
+    const persMsg = document.getElementById('pers-msg');
+    const btn = document.getElementById('hide-ui-btn');
+    
+    const isHidden = uiContainer?.classList.contains('ui-hidden');
+    
+    if (isHidden) {
+      uiContainer?.classList.remove('ui-hidden');
+      persMsg?.classList.remove('ui-hidden');
+      if (btn) btn.textContent = "Hide Text";
+    } else {
+      uiContainer?.classList.add('ui-hidden');
+      persMsg?.classList.add('ui-hidden');
+      if (btn) btn.textContent = "Show Text";
+    }
+  }
+
   private initUI() {
     window.addEventListener('keydown', (e) => { 
       if (e.key.toLowerCase() === 'h') {
-        document.getElementById('ui-container')?.classList.toggle('ui-hidden'); 
+        this.toggleTextUI();
+        // Also toggle the entire controls if 'H' is pressed (classic behavior)
         document.getElementById('top-controls')?.classList.toggle('ui-hidden');
-        document.querySelector('.personalized-message')?.classList.toggle('ui-hidden');
       }
     });
+
+    const hideBtn = document.getElementById('hide-ui-btn');
+    if (hideBtn) {
+      hideBtn.addEventListener('click', () => {
+        this.toggleTextUI();
+      });
+    }
 
     const themeSelector = document.getElementById('theme-selector') as HTMLSelectElement;
     if (themeSelector) {

@@ -56,6 +56,12 @@ body, html {
   display: flex;
   gap: 10px;
   pointer-events: auto;
+  transition: opacity 0.5s ease;
+}
+
+.controls-top-right.ui-hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .holiday-select, .holiday-button {
@@ -92,8 +98,8 @@ body, html {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  justify-content: flex-start; /* Changed from center to push title up */
-  padding: 80px 60px; /* Added more top padding */
+  justify-content: flex-start;
+  padding: 80px 60px;
   transition: opacity 0.5s ease;
 }
 
@@ -126,12 +132,12 @@ body, html {
   transition: opacity 0.5s ease;
 }
 
-.ui-hidden + .personalized-message {
+.personalized-message.ui-hidden {
   opacity: 0;
 }
 
 .msg-main {
-  font-size: 14px; /* Reduced from 18px */
+  font-size: 14px;
   margin: 0;
   letter-spacing: 2px;
   color: #fceea7;
@@ -140,7 +146,7 @@ body, html {
 }
 
 .msg-sub {
-  font-size: 11px; /* Reduced from 14px */
+  font-size: 11px;
   margin: 5px 0 0 0;
   letter-spacing: 3px;
   color: #d4af37;
