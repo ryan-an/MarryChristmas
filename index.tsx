@@ -9,6 +9,7 @@ import { FilesetResolver, HandLandmarker } from '@mediapipe/tasks-vision';
 /**
  * MERRY CHRISTMAS - Responsive Radiant Tree Edition
  * Refined Luminescence + Theme Switching + Fullscreen + Manual & Hand Controls
+ * Meteor System: Occasional slow-moving comets with deep perspective distribution.
  */
 
 const THEMES = {
@@ -36,6 +37,31 @@ const THEMES = {
     needle: 0xe0e0e0,
     glow: 0xb3e5fc,
     ornaments: [0x4dd2ff, 0xffffff, 0x90caf9, 0xffd700]
+  },
+  rose: {
+    needle: 0x4a1020,
+    glow: 0xffaabb,
+    ornaments: [0xffffff, 0xffd700, 0xf48fb1, 0xec407a]
+  },
+  amethyst: {
+    needle: 0x1a0a33,
+    glow: 0xba68c8,
+    ornaments: [0xffffff, 0x9575cd, 0x7b1fa2, 0xe1bee7]
+  },
+  emerald: {
+    needle: 0x002a1a,
+    glow: 0x00e676,
+    ornaments: [0xffffff, 0x81c784, 0x4caf50, 0xffd700]
+  },
+  cyber: {
+    needle: 0x050505,
+    glow: 0x00e5ff,
+    ornaments: [0xff00ff, 0x00e5ff, 0x76ff03, 0xffffff]
+  },
+  sepia: {
+    needle: 0x3e2723,
+    glow: 0xffb300,
+    ornaments: [0xd4af37, 0x8d6e63, 0xfff8e1, 0xa1887f]
   }
 };
 
@@ -43,6 +69,7 @@ const CONFIG = {
   treeParticleCount: 100000, 
   galaxyParticleCount: 60000, 
   dustCount: 4000,
+  meteorCount: 6, // Significantly reduced for occasional appearances
   treeHeight: 95,        
   treeRadius: 52,        
   tiers: 30,             
@@ -61,13 +88,88 @@ interface AppState {
   theme: ThemeName;
   handX: number;
   handY: number;
-  // Interaction states
   isPointerDown: boolean;
   pointerX: number;
   pointerY: number;
   manualRotX: number;
   manualRotY: number;
   clickStartPos: { x: number, y: number };
+}
+
+class Meteor {
+  mesh: THREE.Mesh;
+  velocity: THREE.Vector3;
+  
+  constructor() {
+    const length = 25 + Math.random() * 50;
+    const headRadius = 0.2 + Math.random() * 0.35;
+    const tailRadius = 0.0;
+    
+    const geometry = new THREE.CylinderGeometry(headRadius, tailRadius, length, 8, 1, true);
+    geometry.translate(0, -length / 2, 0); 
+    
+    const count = geometry.attributes.position.count;
+    const colors = new Float32Array(count * 3);
+    const posAttr = geometry.attributes.position;
+    
+    for (let i = 0; i < count; i++) {
+      const y = posAttr.getY(i);
+      const t = Math.abs(y) / length; 
+      const intensity = Math.pow(1.0 - t, 2.5);
+      colors[i * 3] = intensity;
+      colors[i * 3 + 1] = intensity;
+      colors[i * 3 + 2] = intensity;
+    }
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    
+    const material = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      emissive: 0xffffff,
+      emissiveIntensity: 18, 
+      transparent: true,
+      opacity: 0.9,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    
+    this.mesh = new THREE.Mesh(geometry, material);
+    this.velocity = new THREE.Vector3();
+    this.reset();
+  }
+
+  reset() {
+    // Distance distribution: Using Math.pow to bias towards far away (lower Z values)
+    const zBias = Math.pow(Math.random(), 2); 
+    const startZ = -3000 + zBias * 2700;
+    
+    const frustumWidth = Math.abs(startZ) * 1.6;
+    const startX = -frustumWidth/2 - (Math.random() * frustumWidth * 0.5);
+    const startY = 800 + Math.random() * 800;
+    
+    this.mesh.position.set(startX, startY, startZ);
+    
+    // Drift lazily across the sky
+    const speed = 3.5 + Math.random() * 5.5; 
+    const spread = (Math.random() - 0.5) * 0.1;
+    
+    this.velocity.set(1.4, -1.0 + spread, (Math.random() - 0.5) * 0.2).normalize().multiplyScalar(speed);
+    
+    const up = new THREE.Vector3(0, 1, 0);
+    const dir = this.velocity.clone().normalize();
+    this.mesh.quaternion.setFromUnitVectors(up, dir);
+    
+    const perspectiveCompensation = 1.0 + (1.0 - zBias) * 2.0;
+    const s = perspectiveCompensation * (0.8 + Math.random() * 1.5);
+    this.mesh.scale.set(s, s, s);
+  }
+
+  update() {
+    this.mesh.position.add(this.velocity);
+    if (this.mesh.position.y < -1200 || this.mesh.position.x > 3500) {
+      this.reset();
+    }
+  }
 }
 
 class HolidayApp {
@@ -84,6 +186,7 @@ class HolidayApp {
 
   private galaxyFloor: THREE.Points;
   private dust: THREE.Points;
+  private meteors: Meteor[] = [];
   private state: AppState;
   private mainGroup: THREE.Group;
   private handLandmarker: HandLandmarker | null = null;
@@ -92,7 +195,7 @@ class HolidayApp {
 
   constructor() {
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 2000);
+    this.camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 6000);
     this.camera.position.set(0, 15, 120); 
     
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -127,6 +230,7 @@ class HolidayApp {
     this.initTreeParticles();
     this.initGalaxyFloor();
     this.initDust();
+    this.initMeteors();
     this.initCV();
     this.initUI();
 
@@ -152,8 +256,8 @@ class HolidayApp {
 
   private initLights() {
     this.scene.add(new THREE.AmbientLight(0xffffff, 0.3)); 
-    const topLight = new THREE.PointLight(0xfff0dd, 5, 300); 
-    topLight.position.set(0, 150, 0);
+    const topLight = new THREE.PointLight(0xfff0dd, 5, 2000); 
+    topLight.position.set(0, 500, 0);
     this.scene.add(topLight);
   }
 
@@ -163,31 +267,23 @@ class HolidayApp {
   }
 
   private initHeart() {
-    const x = 0, y = 0;
     const heartShape = new THREE.Shape();
-    heartShape.moveTo( x + 5, y + 5 );
-    heartShape.bezierCurveTo( x + 5, y + 5, x + 4, y, x, y );
-    heartShape.bezierCurveTo( x - 6, y, x - 6, y + 7,x - 6, y + 7 );
-    heartShape.bezierCurveTo( x - 6, y + 11, x - 3, y + 15.4, x + 5, y + 19 );
-    heartShape.bezierCurveTo( x + 12, y + 15.4, x + 16, y + 11, x + 16, y + 7 );
-    heartShape.bezierCurveTo( x + 16, y + 7, x + 16, y, x + 10, y );
-    heartShape.bezierCurveTo( x + 7, y, x + 5, y + 5, x + 5, y + 5 );
+    heartShape.moveTo( 5, 5 );
+    heartShape.bezierCurveTo( 5, 5, 4, 0, 0, 0 );
+    heartShape.bezierCurveTo( -6, 0, -6, 7, -6, 7 );
+    heartShape.bezierCurveTo( -6, 11, -3, 15.4, 5, 19 );
+    heartShape.bezierCurveTo( 12, 15.4, 16, 11, 16, 7 );
+    heartShape.bezierCurveTo( 16, 7, 16, 0, 10, 0 );
+    heartShape.bezierCurveTo( 7, 0, 5, 5, 5, 5 );
 
     const extrudeSettings = { 
-      depth: 1.5, 
-      bevelEnabled: true, 
-      bevelSegments: 2, 
-      steps: 2, 
-      bevelSize: 0.8, 
-      bevelThickness: 0.8 
+      depth: 1.5, bevelEnabled: true, bevelSegments: 2, steps: 2, bevelSize: 0.8, bevelThickness: 0.8 
     };
 
     const geometry = new THREE.ExtrudeGeometry( heartShape, extrudeSettings );
     geometry.center();
     geometry.rotateZ(Math.PI); 
-    
-    const scale = 0.11;
-    geometry.scale(scale, scale, scale);
+    geometry.scale(0.11, 0.11, 0.11);
 
     const material = new THREE.MeshStandardMaterial({
       color: 0xff3333,
@@ -387,7 +483,7 @@ class HolidayApp {
     const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(CONFIG.dustCount * 3);
     for (let i = 0; i < CONFIG.dustCount * 3; i++) {
-      pos[i] = (Math.random() - 0.5) * 850;
+      pos[i] = (Math.random() - 0.5) * 2000;
     }
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     this.dust = new THREE.Points(geo, new THREE.PointsMaterial({
@@ -398,6 +494,14 @@ class HolidayApp {
       blending: THREE.AdditiveBlending
     }));
     this.scene.add(this.dust);
+  }
+
+  private initMeteors() {
+    for (let i = 0; i < CONFIG.meteorCount; i++) {
+      const m = new Meteor();
+      this.meteors.push(m);
+      this.scene.add(m.mesh);
+    }
   }
 
   private async initCV() {
@@ -423,9 +527,7 @@ class HolidayApp {
     const uiContainer = document.getElementById('ui-container');
     const persMsg = document.getElementById('pers-msg');
     const btn = document.getElementById('hide-ui-btn');
-    
     const isHidden = uiContainer?.classList.contains('ui-hidden');
-    
     if (isHidden) {
       uiContainer?.classList.remove('ui-hidden');
       persMsg?.classList.remove('ui-hidden');
@@ -441,18 +543,11 @@ class HolidayApp {
     window.addEventListener('keydown', (e) => { 
       if (e.key.toLowerCase() === 'h') {
         this.toggleTextUI();
-        // Also toggle the entire controls if 'H' is pressed (classic behavior)
         document.getElementById('top-controls')?.classList.toggle('ui-hidden');
       }
     });
-
     const hideBtn = document.getElementById('hide-ui-btn');
-    if (hideBtn) {
-      hideBtn.addEventListener('click', () => {
-        this.toggleTextUI();
-      });
-    }
-
+    if (hideBtn) hideBtn.addEventListener('click', () => this.toggleTextUI());
     const themeSelector = document.getElementById('theme-selector') as HTMLSelectElement;
     if (themeSelector) {
       themeSelector.addEventListener('change', (e) => {
@@ -460,7 +555,6 @@ class HolidayApp {
         this.updateTreeColors();
       });
     }
-
     const fsBtn = document.getElementById('fullscreen-btn');
     if (fsBtn) {
       fsBtn.addEventListener('click', () => {
@@ -477,7 +571,6 @@ class HolidayApp {
 
   private onPointerDown(e: PointerEvent) {
     if ((e.target as HTMLElement).tagName === 'SELECT' || (e.target as HTMLElement).tagName === 'BUTTON' || (e.target as HTMLElement).tagName === 'OPTION') return;
-    
     this.state.isPointerDown = true;
     this.state.clickStartPos = { x: e.clientX, y: e.clientY };
     this.state.pointerX = e.clientX;
@@ -486,13 +579,10 @@ class HolidayApp {
 
   private onPointerMove(e: PointerEvent) {
     if (!this.state.isPointerDown) return;
-
     const dx = e.clientX - this.state.pointerX;
     const dy = e.clientY - this.state.pointerY;
-
     this.state.manualRotY += dx * 0.005;
     this.state.manualRotX += dy * 0.005;
-
     this.state.pointerX = e.clientX;
     this.state.pointerY = e.clientY;
   }
@@ -500,14 +590,7 @@ class HolidayApp {
   private onPointerUp(e: PointerEvent) {
     if (!this.state.isPointerDown) return;
     this.state.isPointerDown = false;
-
-    // Detection for "Click" vs "Drag"
-    const dist = Math.sqrt(
-      Math.pow(e.clientX - this.state.clickStartPos.x, 2) + 
-      Math.pow(e.clientY - this.state.clickStartPos.y, 2)
-    );
-
-    // If movement is small, it's a click: Toggle mode
+    const dist = Math.sqrt(Math.pow(e.clientX - this.state.clickStartPos.x, 2) + Math.pow(e.clientY - this.state.clickStartPos.y, 2));
     if (dist < 5) {
       const modes: Mode[] = ['TREE', 'SCATTER'];
       this.state.mode = modes[(modes.indexOf(this.state.mode) + 1) % modes.length];
@@ -528,29 +611,27 @@ class HolidayApp {
       const results = this.handLandmarker.detectForVideo(this.video, performance.now());
       if (results.landmarks && results.landmarks.length > 0) {
         const hand = results.landmarks[0];
-        // Merge hand tracking with some damping
         this.state.handX = (hand[9].x - 0.5) * 2;
         this.state.handY = (hand[9].y - 0.5) * 2;
       }
     }
 
-    // Combine manual and hand rotation
     const targetRotY = this.state.handX * 0.35 + this.state.manualRotY;
     const targetRotX = this.state.handY * 0.18 + this.state.manualRotX;
-
     this.mainGroup.rotation.y += (targetRotY - this.mainGroup.rotation.y) * 0.05;
     this.mainGroup.rotation.x += (targetRotX - this.mainGroup.rotation.x) * 0.05;
 
     this.galaxyFloor.rotation.y += 0.003; 
-    
     const targetFloorY = this.state.mode === 'TREE' ? -52 : -140;
     this.galaxyFloor.position.y = THREE.MathUtils.lerp(this.galaxyFloor.position.y, targetFloorY, 0.05);
-    (this.galaxyFloor.material as THREE.PointsMaterial).opacity = 0.75;
 
     const heartVisible = this.state.mode === 'TREE' ? 1 : 0;
     this.heart.scale.setScalar(THREE.MathUtils.lerp(this.heart.scale.x, heartVisible * (1 + Math.sin(time * 2.5) * 0.06), 0.1));
     this.heart.rotation.y += 0.006;
     (this.heart.material as any).emissiveIntensity = 1.5 + Math.sin(time * 4) * 0.7;
+
+    // Update Meteors
+    this.meteors.forEach(m => m.update());
 
     const positions = this.treeGeometry.attributes.position.array as Float32Array;
     for (let i = 0; i < CONFIG.treeParticleCount; i++) {
@@ -563,27 +644,17 @@ class HolidayApp {
         const tierIndex = this.treeBranchParams[bIdx+1];
         const branchAngle = this.treeBranchParams[bIdx+2];
         const isBranch = this.treeBranchParams[bIdx+3] === 1;
-
         const tierT = tierIndex / CONFIG.tiers;
         const tierHeight = (1 - tierT) * CONFIG.treeHeight - CONFIG.treeHeight / 2 + 12;
-        
-        const adjustedTierT = Math.pow(tierT, 1.1); 
-        const tierRadiusMax = adjustedTierT * CONFIG.treeRadius;
-        
+        const tierRadiusMax = Math.pow(tierT, 1.1) * CONFIG.treeRadius;
         const subAngleScale = isBranch ? 0.2 : 2.5;
         const actualAngle = branchAngle + (Math.sin(i * 0.01) * subAngleScale * (1 - distAlongBranch));
-        
         const droop = Math.pow(distAlongBranch, 1.4) * 7; 
         const sway = Math.sin(time * 0.4 + tierIndex * 0.6) * 0.15;
-        
         const branchRadius = distAlongBranch * tierRadiusMax;
-        
         tx = Math.cos(actualAngle + sway) * branchRadius + this.treeJitters[idx];
         let calculatedTy = tierHeight - droop + this.treeJitters[idx+1] + Math.sin(time * 0.8 + tierIndex) * 0.5;
-        
-        const floorLimit = -51.8;
-        ty = Math.max(calculatedTy, floorLimit);
-        
+        ty = Math.max(calculatedTy, -51.8);
         tz = Math.sin(actualAngle + sway) * branchRadius + this.treeJitters[idx+2];
       } else {
         const t = i / CONFIG.treeParticleCount;
@@ -598,7 +669,6 @@ class HolidayApp {
       positions[idx+2] += (tz - positions[idx+2]) * 0.06;
     }
     this.treeGeometry.attributes.position.needsUpdate = true;
-
     this.composer.render();
   }
 }
